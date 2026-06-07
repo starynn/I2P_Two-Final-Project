@@ -31,9 +31,12 @@ int MiniMax::eval_ctx(
 
     /* === Terminal / leaf checks === */
 
-    // [ Hackathon TODO 3-1 ]
+    // [ Hackathon TODO 3-1 ] -- COMPLETE ## NOTE THAT PLY IS THE "DEPTH" OF OPERATION
     // return the score for a winning terminal state
     // Hint: prefer faster wins by using ply.
+    if( state->game_state == WIN ){
+        return P_MAX - ply;
+    }
 
     if(state->game_state == DRAW){
         return 0;
@@ -55,25 +58,31 @@ int MiniMax::eval_ctx(
     }
 
     /* === Negamax loop === */
-    int best_score = M_MAX;
+    int best_score = -P_MAX; // CHANGE TO LOWEST SCORE
 
     for(auto& action : state->legal_actions){
-        // [ Hackathon TODO 3-2 ]
+        // [ Hackathon TODO 3-2 ] -- COMPLETE
         // create the child state after applying action
+        State* next = state->next_state(action);
+        next->get_legal_actions();
 
         bool same = next->same_player_as_parent();
 
-        // [Hackathon TODO 3-3]
+        // [Hackathon TODO 3-3] -- COMPLETE
         // search the child one level deeper
+        int raw = eval_ctx( next, depth - 1, history, ply + 1, ctx, p );
 
-        // [Hackathon TODO 3-4]
+        // [Hackathon TODO 3-4] -- COMPLETE
         // convert raw to the current player's perspective.
+        int score = same ? raw : -raw; // (3, 5) -> (-3, -5)
 
         delete next;
 
-        // [ Hackathon TODO 3-5 ]
+        // [ Hackathon TODO 3-5 ] -- COMPLETE
         // update best_score if this child is better.
-
+        if( score > best_score ){
+            best_score = score;
+        }
     }
 
     history.pop(state->hash());
@@ -102,17 +111,27 @@ SearchResult MiniMax::search(
     }
 
 
-    int best_score = M_MAX - 10;
+    int best_score = -P_MAX; // replace to start from lowest
     int move_index = 0;
     int total_moves = (int)state->legal_actions.size();
 
     for(auto& action : state->legal_actions){
-        /* [ Hackathon TODO 4-1 ]
+        /* [ Hackathon TODO 4-1 ] -- COMPLETE
          * search this move like TODO 3, but starting from the root */
+        State* next = state->next_state(action);
+        next->get_legal_actions();
+
+        bool same = next->same_player_as_parent();
+        int raw = eval_ctx( next, depth - 1, history, 1, ctx, p );
+        int score = same ? raw : -raw;
+
+        delete next;
 
             if(score > best_score){
-                // [ Hackathon TODO 4-2 ]
+                // [ Hackathon TODO 4-2 ] -- COMPLETE
                 // keep this move if it is the best so far
+                best_score = score;
+                result.best_move = action;
 
                 if(p.report_partial && ctx.on_root_update){
                    ctx.on_root_update({result.best_move, best_score, depth, move_index + 1, total_moves});
@@ -121,10 +140,12 @@ SearchResult MiniMax::search(
         move_index++;
     }
 
-    // [ Hackathon TODO 4-3 ]
+    // [ Hackathon TODO 4-3 ] -- COMPLETE
     // update result and return
-
-        return result;
+    result.score = best_score;
+    result.nodes = ctx.nodes;
+    result.pv = {result.best_move};
+    return result;
 } 
 
 
